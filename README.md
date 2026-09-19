@@ -59,6 +59,8 @@ assets/               # digit masks, sample puzzle photos, goal-state presets
 tests/                # solver/vision/integration test suites
 ```
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for why the package boundaries are drawn where they are. Contributing (including AI agents) should also read [AGENTS.md](AGENTS.md).
+
 ## How "Scan Photo" works
 
 1. `vision.perspective` locates the puzzle's red/white frame in the photo and warps it to a top-down view.
@@ -70,7 +72,7 @@ This review step exists because template matching isn't perfect: lighting, angle
 
 ## Architecture notes
 
-The solver represents the blank tile as `-1`; the vision pipeline represents "no digit matched confidently" as `None`. These are kept as distinct concepts until the user explicitly accepts a scan (`puzzle15.integration.board_conversion`) — an unmatched cell is never silently treated as the puzzle's blank tile.
+The solver represents the blank tile as `-1`; the vision pipeline represents "no digit matched confidently" as `None`. These are kept as distinct concepts until the user explicitly accepts a scan (`puzzle15.integration.board_conversion`) — an unmatched cell is never silently treated as the puzzle's blank tile. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full picture (package layering, the threaded-service pattern, testing philosophy, extension points).
 
 ## Testing
 
