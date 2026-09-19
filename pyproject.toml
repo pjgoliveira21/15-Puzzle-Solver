@@ -11,6 +11,7 @@ dependencies = [
 [project.optional-dependencies]
 debug = ["matplotlib>=3.7"]
 dev = ["pytest>=8.0", "pytest-cov", "matplotlib>=3.7"]
+build = ["pyinstaller>=6.10"]
 
 [project.scripts]
 puzzle15 = "puzzle15.gui.app:run"
