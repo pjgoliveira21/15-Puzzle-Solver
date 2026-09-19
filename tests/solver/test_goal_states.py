@@ -1,6 +1,10 @@
-from puzzle15.solver.goal_states import get_goal_state, load_goal_states
+from pathlib import Path
+
+from puzzle15.integration.board_conversion import validate_board
+from puzzle15.solver.goal_states import get_goal_state, load_board_from_json, load_goal_states
 
 EXPECTED_VALUES = sorted(list(range(1, 16)) + [-1])
+FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
 
 
 def test_load_goal_states_has_numeric_and_colored():
@@ -28,3 +32,8 @@ def test_get_goal_state_known_preset():
 def test_get_goal_state_unknown_key_falls_back():
     board = get_goal_state("does-not-exist")
     assert board == get_goal_state("row_asc")
+
+
+def test_load_board_from_json_reads_sample_fixture():
+    board = load_board_from_json(FIXTURES_DIR / "sample_initial_state.json")
+    validate_board(board)  # should not raise
