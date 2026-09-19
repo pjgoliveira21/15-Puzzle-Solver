@@ -4,10 +4,7 @@ from dataclasses import dataclass
 from puzzle15.gui.dialogs._common import make_popup_header
 from puzzle15.gui.theme import COLORS
 from puzzle15.gui.widgets.buttons import make_button
-from puzzle15.solver.registry import AlgorithmSpec
-
-DEFAULT_TIMEOUT = 30
-DEFAULT_MAX_DEPTH = 30
+from puzzle15.solver.registry import DEFAULT_MAX_DEPTH, DEFAULT_TIMEOUT, AlgorithmSpec
 
 
 @dataclass

@@ -26,6 +26,13 @@ class AlgorithmSpec:
     supports_max_depth: bool = False
 
 
+# Shared with the GUI (algorithm settings dialog, Easy mode's auto-solve,
+# the algorithm-comparison dialog) so there's one source of truth instead
+# of each caller picking its own default.
+DEFAULT_TIMEOUT = 30
+DEFAULT_MAX_DEPTH = 30
+
+
 ALGORITHMS: dict[str, AlgorithmSpec] = {
     "dfs": AlgorithmSpec("dfs", "Depth-First Search", solve_dfs, supports_max_depth=True),
     "bfs": AlgorithmSpec("bfs", "Breadth-First Search", solve_bfs),
@@ -47,3 +54,14 @@ def run_algorithm(
     if spec.supports_max_depth:
         return spec.solve(initial_board, goal_board, max_depth, timeout)
     return spec.solve(initial_board, goal_board, timeout)
+
+
+def run_all_algorithms(
+    initial_board: Board,
+    goal_board: Board,
+    *,
+    timeout: float | None = None,
+) -> dict[str, SolveResult]:
+    """Run every registered algorithm against the same board, sequentially
+    (not in parallel - the point is a fair timing comparison)."""
+    return {key: run_algorithm(key, initial_board, goal_board, timeout=timeout) for key in ALGORITHMS}
