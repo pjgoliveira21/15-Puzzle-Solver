@@ -1,3 +1,5 @@
+import time as time_module
+
 import pytest
 
 from puzzle15.solver.registry import ALGORITHMS, run_algorithm
@@ -56,9 +58,25 @@ def test_dfs_fails_with_too_small_max_depth():
 
 
 @pytest.mark.parametrize("key", list(ALGORITHMS.keys()))
-def test_vanishing_timeout_reports_failure(key):
+def test_vanishing_timeout_reports_failure(key, monkeypatch):
     # A near-zero (but truthy) timeout should trip on the first check for
     # every algorithm. timeout=0 would NOT do this: `if timeout and ...`
     # treats 0 as "no timeout", same quirk as the original implementation.
+    #
+    # Racing a tiny timeout against real wall-clock time is flaky on
+    # coarser clocks (observed in CI: a whole multi-node search completed
+    # with elapsed reading back as 0.0 across every check, since
+    # time.time()'s resolution isn't guaranteed to be nanosecond-grade).
+    # Mock time.time() instead so the first elapsed-time check is always
+    # deterministically over the threshold, regardless of the host clock.
+    call_count = 0
+
+    def fake_time() -> float:
+        nonlocal call_count
+        call_count += 1
+        return 0.0 if call_count == 1 else 1000.0
+
+    monkeypatch.setattr(time_module, "time", fake_time)
+
     result = run_algorithm(key, ONE_MOVE_AWAY, GOAL, timeout=1e-9, max_depth=0)
     assert not result.success
