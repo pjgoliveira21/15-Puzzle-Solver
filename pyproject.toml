@@ -1,0 +1,28 @@
+[project]
+name = "puzzle15"
+version = "0.1.0"
+description = "15-puzzle solver with photo-based state recognition"
+requires-python = ">=3.10"
+dependencies = [
+    "opencv-python>=4.8",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+debug = ["matplotlib>=3.7"]
+dev = ["pytest>=8.0", "pytest-cov", "matplotlib>=3.7"]
+
+[project.scripts]
+puzzle15 = "puzzle15.gui.app:run"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["puzzle15*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests that run the vision pipeline end-to-end against real sample photos",
+]

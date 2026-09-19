@@ -1,0 +1,64 @@
+import pytest
+
+from puzzle15.solver.registry import ALGORITHMS, run_algorithm
+
+GOAL = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, -1],
+]
+
+# One move away from GOAL (blank swapped with 15).
+ONE_MOVE_AWAY = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, -1, 15],
+]
+
+
+# DFS explores depth-first up to max_depth before backtracking, so it isn't
+# guaranteed to find a shallow solution quickly at the default max_depth=30
+# (same characteristic as the original algorithm) - tested separately below
+# with a max_depth tight enough to force it.
+NON_DFS_KEYS = [key for key in ALGORITHMS if key != "dfs"]
+
+
+@pytest.mark.parametrize("key", NON_DFS_KEYS)
+def test_solves_one_move_away(key):
+    result = run_algorithm(key, ONE_MOVE_AWAY, GOAL, timeout=10)
+    assert result.success
+    assert result.steps == 1
+    assert result.path[0] == ONE_MOVE_AWAY
+    assert result.path[-1] == GOAL
+
+
+def test_dfs_solves_one_move_away_within_matching_max_depth():
+    result = run_algorithm("dfs", ONE_MOVE_AWAY, GOAL, timeout=10, max_depth=1)
+    assert result.success
+    assert result.steps == 1
+    assert result.path[0] == ONE_MOVE_AWAY
+    assert result.path[-1] == GOAL
+
+
+@pytest.mark.parametrize("key", list(ALGORITHMS.keys()))
+def test_already_at_goal(key):
+    result = run_algorithm(key, GOAL, GOAL, timeout=10)
+    assert result.success
+    assert result.steps == 0
+    assert result.path == [GOAL]
+
+
+def test_dfs_fails_with_too_small_max_depth():
+    result = run_algorithm("dfs", ONE_MOVE_AWAY, GOAL, timeout=10, max_depth=0)
+    assert not result.success
+
+
+@pytest.mark.parametrize("key", list(ALGORITHMS.keys()))
+def test_vanishing_timeout_reports_failure(key):
+    # A near-zero (but truthy) timeout should trip on the first check for
+    # every algorithm. timeout=0 would NOT do this: `if timeout and ...`
+    # treats 0 as "no timeout", same quirk as the original implementation.
+    result = run_algorithm(key, ONE_MOVE_AWAY, GOAL, timeout=1e-9, max_depth=0)
+    assert not result.success
