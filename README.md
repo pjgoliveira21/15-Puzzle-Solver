@@ -93,4 +93,4 @@ Merged from two earlier projects: **15-Puzzle-AI-Solver** (search algorithms and
 
 ## License
 
-TBD.
+[MIT](LICENSE)
