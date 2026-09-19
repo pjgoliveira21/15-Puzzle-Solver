@@ -1,6 +1,7 @@
 """Advanced mode's Compare Algorithms dialogs: a timeout prompt, then a
 results table."""
 
+import math
 import tkinter as tk
 from tkinter import ttk
 
@@ -50,10 +51,11 @@ def ask_comparison_timeout(parent) -> float | None:
             error_label.configure(text="Enter a number.")
             return
         # timeout=0 means "no timeout" to the search implementations
-        # (`if timeout and ...`), so 0 or negative would silently make this
-        # an unbounded comparison despite the field's own label.
-        if value <= 0:
-            error_label.configure(text="Timeout must be greater than 0.")
+        # (`if timeout and ...`), and so does NaN/inf (the elapsed-time
+        # check never exceeds it) - float() accepts "nan"/"inf" strings,
+        # so both must be rejected explicitly alongside <= 0.
+        if not math.isfinite(value) or value <= 0:
+            error_label.configure(text="Timeout must be a positive number.")
             return
         result["value"] = value
         popup.destroy()
