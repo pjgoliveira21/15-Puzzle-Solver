@@ -58,10 +58,13 @@ once the user accepts it.
 `puzzle15/solver/registry.py` holds an `AlgorithmSpec` per algorithm
 (`dfs`/`bfs`/`gbfs`/`astar`/`idastar`), keyed by a stable, language-neutral
 string. The GUI never has an `if algo == "Depth-First Search"` chain — it
-looks up a spec by key and calls `spec.solve(...)`. The **display label**
-lives on the spec, not hardcoded in GUI widgets — if the label needs to
-change or the app needs a second language, that's a one-line edit in the
-registry, not a hunt through button-construction code.
+passes the key straight through to `SolveService`, which calls
+`registry.run_algorithm(key, ...)`; the registry is what looks up the spec
+and calls `spec.solve(...)`. The GUI only reads `ALGORITHMS[key]` for
+display purposes (label, settings). The **display label** lives on the
+spec, not hardcoded in GUI widgets — if the label needs to change or the
+app needs a second language, that's a one-line edit in the registry, not a
+hunt through button-construction code.
 
 ```python
 @dataclass(frozen=True)
@@ -85,11 +88,18 @@ class SolveService:
         def run():
             try:
                 result = run_algorithm(...)
-                on_done(result, None)
             except Exception as exc:
                 on_done(None, exc)
+                return
+            on_done(result, None)
         threading.Thread(target=run, daemon=True).start()
 ```
+
+The callback call sits **outside** the `try` that wraps the actual work,
+not inside it — if it were inside, an exception raised by `on_done` itself
+would be caught by the same `except` and trigger a second `on_done` call.
+Keeping it outside is what makes "called exactly once" true rather than
+aspirational.
 
 Callbacks fire **on the worker thread**, not the main thread — callers
 in `gui/app.py` wrap them in `root.after(0, ...)` before touching any Tk

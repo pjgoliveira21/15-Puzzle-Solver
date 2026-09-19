@@ -33,12 +33,14 @@ class ScanService:
             logger.debug("scan requested: %s", path)
             try:
                 result = self.scanner.scan_file(path)
-                on_done(result)
             except VisionError as exc:
                 logger.debug("scan rejected: %s", exc)
                 on_error(exc)
+                return
             except Exception as exc:
                 logger.exception("scan crashed for %s", path)
                 on_error(exc)
+                return
+            on_done(result)
 
         threading.Thread(target=run, daemon=True).start()

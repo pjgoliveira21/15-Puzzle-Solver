@@ -36,9 +36,10 @@ class SolveService:
             try:
                 result = run_algorithm(algorithm_key, initial_board, goal_board, timeout=timeout, max_depth=max_depth)
                 logger.debug("solve finished: algorithm=%s success=%s steps=%s explored=%s", algorithm_key, result.success, result.steps, result.explored)
-                on_done(result, None)
             except Exception as exc:
                 logger.exception("solve crashed: algorithm=%s", algorithm_key)
                 on_done(None, exc)
+                return
+            on_done(result, None)
 
         threading.Thread(target=run, daemon=True).start()

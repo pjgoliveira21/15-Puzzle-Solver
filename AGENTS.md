@@ -31,14 +31,17 @@ tests/                          mirrors the solver/vision/integration structure
   `AlgorithmSpec.key` (`"astar"`, `"dfs"`, ...) is used for dispatch and must
   never change casually. `AlgorithmSpec.label` is the only place
   display text lives — don't hardcode algorithm names in `gui/` widgets.
-- **`gui/` widgets take callbacks, not logic.** Panels and dialogs receive
-  callables from `gui/app.py` and call them on user action; they don't
-  import `solver`/`vision`/`integration` to do work themselves (a couple
-  of read-only exceptions exist, e.g. a panel reading `ALGORITHMS` to
-  build button labels — that's fine; running a solve or a scan is not).
-  If you're about to write board math or an OpenCV call inside a
-  `gui/widgets/*.py` or `gui/dialogs/*.py` file, it belongs in
-  `solver/`, `vision/`, or `integration/` instead.
+- **`gui/` widgets don't own business logic.** Panels mostly receive
+  callables from `gui/app.py` and call them on user action. Dialogs are a
+  bit more permissive: they may call `integration/`'s boundary/validation
+  helpers directly on accept (e.g. `scan_review_dialog.py` calls
+  `board_conversion.scan_grid_to_board`/`validate_board` when the user
+  clicks Accept) since that's the dialog's own input-validation job, not
+  app-level orchestration. A couple of read-only exceptions exist too,
+  e.g. a panel reading `ALGORITHMS` to build button labels. What's not
+  allowed: running a solve, running a scan, or writing board math/OpenCV
+  calls directly inside a `gui/widgets/*.py` or `gui/dialogs/*.py` file —
+  that belongs in `solver/`, `vision/`, or `integration/` instead.
 - **The `-1`/`None` boundary is intentional, not a bug.** Don't "simplify"
   by converting vision's `None` to `-1` earlier than
   `integration/board_conversion.py`. See ARCHITECTURE.md for why.
