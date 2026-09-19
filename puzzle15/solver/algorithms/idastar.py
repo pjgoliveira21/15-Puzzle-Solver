@@ -2,6 +2,7 @@ import logging
 import time
 
 from puzzle15.solver.board import Board, BoardTuple, get_neighbors, manhattan_distance, matrix_to_tuple
+from puzzle15.solver.progress import ProgressLogger
 from puzzle15.solver.result import SearchTimeout, SolveResult, make_result
 
 logger = logging.getLogger(__name__)
@@ -13,9 +14,9 @@ def solve_idastar(initial_matrix: Board, goal_matrix: Board, timeout: float | No
 
     threshold = manhattan_distance(initial, goal)
     start_time = time.time()
-    stats = {"explored": 0, "iterations": 0}
+    stats = {"explored": 0, "iterations": 0, "progress": ProgressLogger(logger, "IDA*", start_time)}
 
-    logger.debug("[IDA*] starting (timeout=%s)", timeout)
+    logger.debug("[IDA*] starting: timeout=%s initial_threshold=%d", timeout, threshold)
     try:
         while True:
             if timeout and (time.time() - start_time > timeout):
@@ -28,15 +29,24 @@ def solve_idastar(initial_matrix: Board, goal_matrix: Board, timeout: float | No
 
             if path:
                 result = make_result(True, start_time, stats["explored"], path)
-                logger.debug("[IDA*] solution found (%ss, %s steps)", result.time_seconds, result.steps)
+                logger.debug(
+                    "[IDA*] solved: time=%ss steps=%d explored=%d iterations=%d",
+                    result.time_seconds,
+                    result.steps,
+                    stats["explored"],
+                    stats["iterations"],
+                )
                 return result
 
             if next_threshold == float("inf"):
+                logger.debug("[IDA*] exhausted search space with no solution: explored=%d iterations=%d", stats["explored"], stats["iterations"])
                 return make_result(False, start_time, stats["explored"])
+
+            logger.debug("[IDA*] iteration %d done: threshold %d -> %d, explored=%d", stats["iterations"], threshold, next_threshold, stats["explored"])
             threshold = next_threshold
 
     except SearchTimeout:
-        logger.debug("[IDA*] timeout reached (explored=%s)", stats["explored"])
+        logger.debug("[IDA*] timeout reached: explored=%d iterations=%d threshold=%d", stats["explored"], stats["iterations"], threshold)
         return make_result(False, start_time, stats["explored"])
 
 
@@ -55,6 +65,7 @@ def _idastar_kernel(
         raise SearchTimeout()
 
     stats["explored"] += 1
+    stats["progress"].maybe_log(stats["explored"], iteration=stats["iterations"], g=g, threshold=threshold)
 
     f_val = g + manhattan_distance(state, goal)
     if f_val > threshold:

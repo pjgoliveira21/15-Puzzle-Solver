@@ -32,11 +32,13 @@ class SolveService:
         on_done: Callable[[SolveResult | None, Exception | None], None],
     ) -> None:
         def run() -> None:
+            logger.debug("solve requested: algorithm=%s timeout=%s max_depth=%s", algorithm_key, timeout, max_depth)
             try:
                 result = run_algorithm(algorithm_key, initial_board, goal_board, timeout=timeout, max_depth=max_depth)
+                logger.debug("solve finished: algorithm=%s success=%s steps=%s explored=%s", algorithm_key, result.success, result.steps, result.explored)
                 on_done(result, None)
             except Exception as exc:
-                logger.exception("Solve failed for algorithm=%s", algorithm_key)
+                logger.exception("solve crashed: algorithm=%s", algorithm_key)
                 on_done(None, exc)
 
         threading.Thread(target=run, daemon=True).start()

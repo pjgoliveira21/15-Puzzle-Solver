@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 import cv2
 import numpy as np
 
 from puzzle15.vision.config import DEFAULT_MATCH_THRESHOLD
+
+logger = logging.getLogger(__name__)
 
 GRID_SIZE = 4
 MASK_HEIGHT_RATIO = 0.7
@@ -75,5 +79,17 @@ def read_numbers(
             grid[i][j] = number
             scores[(i, j)] = best_match_val
             occupied_cells.add((i, j))
+            logger.debug("digit %2d -> cell (%d,%d), score=%.3f", number, i, j, best_match_val)
+        else:
+            logger.debug(
+                "digit %2d -> no confident match (best=%.3f at %s, threshold=%.2f)",
+                number,
+                best_match_val,
+                best_cell_coords,
+                threshold,
+            )
+
+    unmatched_cells = [coords for coords in cells_processed if coords not in occupied_cells]
+    logger.debug("recognition done: %d/16 cells matched, unmatched=%s", len(occupied_cells), unmatched_cells)
 
     return grid, scores, cells_processed

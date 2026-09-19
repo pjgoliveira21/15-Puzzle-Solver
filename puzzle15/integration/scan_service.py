@@ -30,13 +30,15 @@ class ScanService:
         on_error: Callable[[Exception], None],
     ) -> None:
         def run() -> None:
+            logger.debug("scan requested: %s", path)
             try:
                 result = self.scanner.scan_file(path)
                 on_done(result)
             except VisionError as exc:
+                logger.debug("scan rejected: %s", exc)
                 on_error(exc)
             except Exception as exc:
-                logger.exception("Scan failed for %s", path)
+                logger.exception("scan crashed for %s", path)
                 on_error(exc)
 
         threading.Thread(target=run, daemon=True).start()

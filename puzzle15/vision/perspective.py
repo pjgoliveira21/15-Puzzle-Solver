@@ -9,10 +9,14 @@ on unpacking.
 
 from __future__ import annotations
 
+import logging
+
 import cv2
 import numpy as np
 
 from puzzle15.vision.result import VisionError
+
+logger = logging.getLogger(__name__)
 
 MIN_CONTOUR_AREA = 1000
 MIN_COLOR_FRACTION = 0.01
@@ -33,8 +37,10 @@ def locate_and_warp(
     vertices, lines_image = _get_vertices(image, binary_mask, mask_red, mask_white)
 
     if vertices is None:
+        logger.warning("no puzzle contour found (min_area=%d, min_color_fraction=%.2f)", MIN_CONTOUR_AREA, MIN_COLOR_FRACTION)
         raise VisionError("Could not locate the puzzle's frame in the photo.")
 
+    logger.debug("puzzle contour found, vertices (TL,TR,BR,BL)=%s", [tuple(v) for v in vertices.tolist()])
     warped = _warp(image, vertices.astype(np.float32), target_size)
     return warped, binary_mask, lines_image
 
@@ -100,6 +106,8 @@ def _get_vertices(image, binary_mask, mask_red, mask_white):
         if score > best_score:
             best_score = score
             best_contour = contour
+
+    logger.debug("contour search: %d candidates found, best_score=%.4f", len(contours), best_score)
 
     if best_contour is None:
         return None, None
