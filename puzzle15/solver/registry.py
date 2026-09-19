@@ -48,7 +48,7 @@ def run_algorithm(
     goal_board: Board,
     *,
     timeout: float | None = None,
-    max_depth: int = 30,
+    max_depth: int = DEFAULT_MAX_DEPTH,
 ) -> SolveResult:
     spec = ALGORITHMS[algorithm_key]
     if spec.supports_max_depth:
@@ -64,4 +64,7 @@ def run_all_algorithms(
 ) -> dict[str, SolveResult]:
     """Run every registered algorithm against the same board, sequentially
     (not in parallel - the point is a fair timing comparison)."""
-    return {key: run_algorithm(key, initial_board, goal_board, timeout=timeout) for key in ALGORITHMS}
+    return {
+        key: run_algorithm(key, initial_board, goal_board, timeout=timeout, max_depth=DEFAULT_MAX_DEPTH)
+        for key in ALGORITHMS
+    }

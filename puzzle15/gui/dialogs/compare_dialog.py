@@ -37,11 +37,25 @@ def ask_comparison_timeout(parent) -> float | None:
     form.pack(fill=tk.BOTH)
 
     tk.Label(form, text="Timeout per algorithm (s):").pack(anchor="w")
-    timeout_var = tk.IntVar(value=DEFAULT_TIMEOUT)
+    timeout_var = tk.StringVar(value=str(DEFAULT_TIMEOUT))
     tk.Entry(form, textvariable=timeout_var).pack(fill=tk.X, pady=5)
 
+    error_label = tk.Label(form, text="", fg=COLORS["danger"])
+    error_label.pack(anchor="w")
+
     def start() -> None:
-        result["value"] = timeout_var.get()
+        try:
+            value = float(timeout_var.get())
+        except ValueError:
+            error_label.configure(text="Enter a number.")
+            return
+        # timeout=0 means "no timeout" to the search implementations
+        # (`if timeout and ...`), so 0 or negative would silently make this
+        # an unbounded comparison despite the field's own label.
+        if value <= 0:
+            error_label.configure(text="Timeout must be greater than 0.")
+            return
+        result["value"] = value
         popup.destroy()
 
     make_button(form, "RUN", start, COLORS["success"]).pack(fill=tk.X, pady=10)

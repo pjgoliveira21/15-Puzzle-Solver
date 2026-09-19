@@ -49,5 +49,18 @@ def describe_moves(path: list[Board]) -> list[MoveInstruction]:
             raise ValueError(f"boards are not one move apart: {prev} -> {nxt}")
 
         tile = nxt[to_pos[0]][to_pos[1]]
+
+        # The vector check above only proves the blank moved to an adjacent
+        # cell; confirm nxt is exactly prev with that one tile and the
+        # blank swapped, so a board with an unrelated extra change can't
+        # sneak past as a valid "one move".
+        expected = [row[:] for row in prev]
+        expected[from_pos[0]][from_pos[1]], expected[to_pos[0]][to_pos[1]] = (
+            expected[to_pos[0]][to_pos[1]],
+            expected[from_pos[0]][from_pos[1]],
+        )
+        if expected != nxt:
+            raise ValueError(f"boards differ by more than one tile swap: {prev} -> {nxt}")
+
         instructions.append(MoveInstruction(tile=tile, direction=direction, from_pos=from_pos, to_pos=to_pos))
     return instructions

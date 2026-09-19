@@ -54,6 +54,11 @@ class PuzzleApp:
         self.log_handler = install_debug_log_handler()
         self.dev_console: DevConsole | None = None
         self.mode = tk.StringVar(value="easy")
+        # Bumped on every board-mutating handler; async solve/compare
+        # callbacks capture this at request time and ignore their own
+        # result if it no longer matches, so a board change mid-search
+        # can't display a result for a board that's no longer on screen.
+        self._board_version = 0
 
         build_menu_bar(
             self.root,
@@ -128,13 +133,13 @@ class PuzzleApp:
         if board is not None:
             self.state.initial_board = board
             self.initial_panel.update_board(board)
-            self.steps_panel.reset_to_ready()
+            self._on_board_changed()
 
     def handle_shuffle(self, difficulty: str) -> None:
         board = generate_shuffled_board(difficulty, self.state.goal_board)
         self.state.initial_board = board
         self.initial_panel.update_board(board)
-        self.steps_panel.reset_to_ready()
+        self._on_board_changed()
 
     def handle_scan_photo(self) -> None:
         path = choose_photo_source(self.root)
@@ -157,7 +162,7 @@ class PuzzleApp:
         if board is not None:
             self.state.initial_board = board
             self.initial_panel.update_board(board)
-            self.steps_panel.reset_to_ready()
+            self._on_board_changed()
 
     def _handle_scan_error(self, progress: ProgressDialog, exc: Exception) -> None:
         progress.close()
@@ -170,12 +175,16 @@ class PuzzleApp:
         if board is not None:
             self.state.goal_board = board
             self.goal_panel.update_board(board)
-            self.steps_panel.reset_to_ready()
+            self._on_board_changed()
 
     def handle_select_preset(self, key: str) -> None:
         board = get_goal_state(key)
         self.state.goal_board = board
         self.goal_panel.update_board(board)
+        self._on_board_changed()
+
+    def _on_board_changed(self) -> None:
+        self._board_version += 1
         self.steps_panel.reset_to_ready()
 
     def _import_board_from_json(self) -> Board | None:
@@ -203,9 +212,10 @@ class PuzzleApp:
             return
 
         progress = ProgressDialog(self.root, f"Running {spec.label}...")
+        request_version = self._board_version
 
         def on_done(result: SolveResult | None, error: Exception | None) -> None:
-            self.root.after(0, lambda: self._handle_solve_done(progress, result, error))
+            self.root.after(0, lambda: self._handle_solve_done(progress, result, error, request_version))
 
         self.solve_service.run_async(
             algorithm_key,
@@ -216,8 +226,16 @@ class PuzzleApp:
             on_done=on_done,
         )
 
-    def _handle_solve_done(self, progress: ProgressDialog, result: SolveResult | None, error: Exception | None) -> None:
+    def _handle_solve_done(
+        self,
+        progress: ProgressDialog,
+        result: SolveResult | None,
+        error: Exception | None,
+        request_version: int,
+    ) -> None:
         progress.close()
+        if request_version != self._board_version:
+            return
         if error is not None:
             messagebox.showerror("Solve failed", str(error))
             return
@@ -233,9 +251,10 @@ class PuzzleApp:
             return
 
         progress = ProgressDialog(self.root, "Comparing algorithms...")
+        request_version = self._board_version
 
         def on_done(results: dict[str, SolveResult] | None, error: Exception | None) -> None:
-            self.root.after(0, lambda: self._handle_compare_done(progress, results, error))
+            self.root.after(0, lambda: self._handle_compare_done(progress, results, error, request_version))
 
         self.compare_service.run_all_async(
             self.state.initial_board,
@@ -249,8 +268,11 @@ class PuzzleApp:
         progress: ProgressDialog,
         results: dict[str, SolveResult] | None,
         error: Exception | None,
+        request_version: int,
     ) -> None:
         progress.close()
+        if request_version != self._board_version:
+            return
         if error is not None:
             messagebox.showerror("Comparison failed", str(error))
             return
@@ -264,9 +286,10 @@ class PuzzleApp:
             return
 
         progress = ProgressDialog(self.root, "Solving...")
+        request_version = self._board_version
 
         def on_done(result: SolveResult | None, error: Exception | None) -> None:
-            self.root.after(0, lambda: self._handle_easy_solve_done(progress, result, error))
+            self.root.after(0, lambda: self._handle_easy_solve_done(progress, result, error, request_version))
 
         self.solve_service.run_async(
             EASY_MODE_ALGORITHM,
@@ -276,8 +299,16 @@ class PuzzleApp:
             on_done=on_done,
         )
 
-    def _handle_easy_solve_done(self, progress: ProgressDialog, result: SolveResult | None, error: Exception | None) -> None:
+    def _handle_easy_solve_done(
+        self,
+        progress: ProgressDialog,
+        result: SolveResult | None,
+        error: Exception | None,
+        request_version: int,
+    ) -> None:
         progress.close()
+        if request_version != self._board_version:
+            return
         if error is not None:
             messagebox.showerror("Solve failed", str(error))
             return
