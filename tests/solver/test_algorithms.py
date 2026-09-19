@@ -2,7 +2,7 @@ import time as time_module
 
 import pytest
 
-from puzzle15.solver.registry import ALGORITHMS, run_algorithm
+from puzzle15.solver.registry import ALGORITHMS, run_algorithm, run_all_algorithms
 
 GOAL = [
     [1, 2, 3, 4],
@@ -80,3 +80,35 @@ def test_vanishing_timeout_reports_failure(key, monkeypatch):
 
     result = run_algorithm(key, ONE_MOVE_AWAY, GOAL, timeout=1e-9, max_depth=0)
     assert not result.success
+
+
+def test_run_all_algorithms_returns_every_key():
+    results = run_all_algorithms(ONE_MOVE_AWAY, GOAL, timeout=10)
+    assert set(results.keys()) == set(ALGORITHMS.keys())
+
+
+def test_run_all_algorithms_already_at_goal():
+    results = run_all_algorithms(GOAL, GOAL, timeout=10)
+    assert all(result.success and result.steps == 0 for result in results.values())
+
+
+def test_run_all_algorithms_vanishing_timeout_reports_failure(monkeypatch):
+    # Unlike test_vanishing_timeout_reports_failure above, this drives five
+    # sequential run_algorithm calls off one shared fake clock, so a simple
+    # "first call small, rest large" toggle isn't enough - the second call
+    # of each later algorithm (its first elapsed-time check) would read the
+    # same "large" value as its own start time, making elapsed look like 0
+    # again. A monotonically increasing clock guarantees every check reads
+    # strictly after its own start time, by a wide enough margin to clear
+    # the near-zero timeout regardless of how many algorithms already ran.
+    counter = 0
+
+    def fake_time() -> float:
+        nonlocal counter
+        counter += 1
+        return counter * 1000.0
+
+    monkeypatch.setattr(time_module, "time", fake_time)
+
+    results = run_all_algorithms(ONE_MOVE_AWAY, GOAL, timeout=1e-9)
+    assert all(not result.success for result in results.values())
